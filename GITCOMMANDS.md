@@ -20,3 +20,5 @@
 -	git commit -m “Hva du har gjort” // lagrer add endringene i den lokale git historien din.
 -	git push -u origin <branch_navn> //sender de lokale endringene i git historien til de eksterne repositoriet. Nå kan andre hente endringene. Husk å lage en pull request. Bare git push hvis man har pushet branchen før.
 -	Lag en pull request på github hvor du spør en annen om å godkjenne hva du har gjort
+
+dette er en test
