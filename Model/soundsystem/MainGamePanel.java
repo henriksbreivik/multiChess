@@ -46,6 +46,7 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
 
         // Add timer labels and turn label to the padding panel
         whiteTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 48));
+        whiteTimerLabel.setBorder(BorderFactory.createLineBorder(Color.RED, 3)); // Red border for White
         blackTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 48));
         blackTimerLabel.setForeground(Color.WHITE);
         blackTimerLabel.setBackground(Color.BLACK);
@@ -101,7 +102,7 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
     private boolean checkTicTacToeDraw() {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                if (boardWinners[i][j] != PieceColor.WHITE || boardWinners[i][j] != PieceColor.BLACK) {
+                if (boardWinners[i][j] == PieceColor.NONE) {
                     return false;
                 }
             }
@@ -182,12 +183,22 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
         } else {
             blackTimeRemaining += 5;
         }
+
         // Switch turns globally
         currentPlayer = (currentPlayer == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
         swapTurnOnAllBoards(currentPlayer);
 
         // Update the turn label
         turnLabel.setText(currentPlayer == PieceColor.WHITE ? "WHITE" : "BLACK");
+
+        // Highlight the current player's timer
+        if (currentPlayer == PieceColor.WHITE) {
+            whiteTimerLabel.setBorder(BorderFactory.createLineBorder(Color.RED, 3)); // Red border for White
+            blackTimerLabel.setBorder(BorderFactory.createEmptyBorder()); // Remove border for Black
+        } else {
+            blackTimerLabel.setBorder(BorderFactory.createLineBorder(Color.RED, 3)); // Red border for Black
+            whiteTimerLabel.setBorder(BorderFactory.createEmptyBorder()); // Remove border for White
+        }
 
         // Stop the current player's timer and start the next player's timer
         if (currentPlayer == PieceColor.WHITE) {
