@@ -16,16 +16,18 @@ class ChessBoardPanel extends JPanel implements ActionListener {
     private piece[][] board = new piece[8][8];
     private boolean pieceSelected = false;
     private int selectedRow, selectedCol;
-    private PieceColor currentPlayer = PieceColor.WHITE;  // White always starts
     private boolean gameOver = false;
-    private JLabel statusLabel = new JLabel("White's turn");
-    private Timer turnTimer;
-    private int timeRemaining = 60; // 60 seconds per turn
-    private JLabel timerLabel = new JLabel("Time left: 60s");
+    private JLabel overlayLabel;
+    private PieceColor currentPlayer;
     
 
     private ChessBoardListener listener;
     private int boardIndex;
+
+    public void showOverlaySymbol(String symbol) {
+        overlayLabel.setText(symbol);
+        overlayLabel.setVisible(true);
+    }
 
     public void setListener(ChessBoardListener listener, int index) {
         this.listener = listener;
@@ -34,25 +36,32 @@ class ChessBoardPanel extends JPanel implements ActionListener {
 
     public ChessBoardPanel() {
         setLayout(new BorderLayout());
+        
         JPanel boardPanel = new JPanel(new GridLayout(8, 8));
         initializeBoardState();
         initializeGUI(boardPanel);
-        add(boardPanel, BorderLayout.CENTER);
-        add(statusLabel, BorderLayout.SOUTH);
 
-        turnTimer = new Timer(1000, new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            timeRemaining--;
-            timerLabel.setText("Time left: " + timeRemaining + "s");
-            if (timeRemaining <= 0) {
-                turnTimer.stop();
-                handleTimeOut();
-            }
-        }
-    });
-    turnTimer.start();
+        overlayLabel = new JLabel("", SwingConstants.CENTER);
+        overlayLabel.setFont(new Font("SansSerif", Font.BOLD, 96));
+        overlayLabel.setForeground(new Color(0, 0, 0, 150)); // semi-transparent svart
+        overlayLabel.setOpaque(false);
+        overlayLabel.setVisible(false);
+
+        JLayeredPane layeredPane = new JLayeredPane();
+        boardPanel.setBounds(0, 0, 600, 600);
+        overlayLabel.setBounds(0, 0, 600, 600);
+        layeredPane.setPreferredSize(new Dimension(600, 600));
+        layeredPane.add(boardPanel, JLayeredPane.DEFAULT_LAYER);
+        layeredPane.add(overlayLabel, JLayeredPane.PALETTE_LAYER);
+
+        removeAll();
+        setLayout(new BorderLayout());
+        add(boardPanel, BorderLayout.CENTER);
+        
+        currentPlayer = PieceColor.WHITE;
+
     }
+
 
     // Set up the starting positions for all pieces.
     private void initializeBoardState() {
@@ -87,17 +96,17 @@ class ChessBoardPanel extends JPanel implements ActionListener {
             board[6][j] = new piece(PieceType.PAWN, PieceColor.WHITE);
         }
     }
-    
+
     // Set up the board GUI.
     private void initializeGUI(JPanel boardPanel) {
-    Font font = new Font("SansSerif", Font.BOLD, 48);
+    Font font = new Font("Symbola", Font.PLAIN,24);
 
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             JButton button = new JButton(board[row][col].getSymbol());
             button.setFont(font);
             button.setFocusPainted(false);
-            button.setPreferredSize(new Dimension(60, 60));
+            button.setPreferredSize(new Dimension(80, 80));
             button.setMargin(new Insets(0, 0, 0, 0)); 
             button.setOpaque(true);
             button.setBorderPainted(false);
@@ -129,51 +138,36 @@ class ChessBoardPanel extends JPanel implements ActionListener {
             }
         }
     }
-    
+
     // Process a click on square (row, col)
-// Reset the timer when the turn switches
-private void handleSquareClick(int row, int col) {
-    if (!pieceSelected) {
-        if (!board[row][col].getSymbol().equals("") && board[row][col].color == currentPlayer) {
-            pieceSelected = true;
-            selectedRow = row;
-            selectedCol = col;
-            squares[row][col].setBackground(Color.YELLOW);
+    // Reset the timer when the turn switches
+    private void handleSquareClick(int row, int col) {
+        if (!pieceSelected) {
+            if (!board[row][col].getSymbol().equals("") && board[row][col].color == currentPlayer) {
+                pieceSelected = true;
+                selectedRow = row;
+                selectedCol = col;
+                squares[row][col].setBackground(Color.YELLOW);
+            }
+        } else {
+            if (isValidMove(board[selectedRow][selectedCol], selectedRow, selectedCol, row, col)) {
+                board[row][col] = board[selectedRow][selectedCol];
+                board[selectedRow][selectedCol] = new piece();
+                updateSquare(selectedRow, selectedCol);
+                updateSquare(row, col);
+
+                // Notify MainGamePanel that a move was made
+                if (listener != null) {
+                    listener.onMoveMade(boardIndex);
+                }    
+
+                checkGameOver();
+                
+            }
+            resetSquareColor(selectedRow, selectedCol);
+            pieceSelected = false;
         }
-    } else {
-        if (isValidMove(board[selectedRow][selectedCol], selectedRow, selectedCol, row, col)) {
-            board[row][col] = board[selectedRow][selectedCol];
-            board[selectedRow][selectedCol] = new piece();
-            updateSquare(selectedRow, selectedCol);
-            updateSquare(row, col);
-
-            // Switch turns and reset the timer
-            currentPlayer = (currentPlayer == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
-            statusLabel.setText((currentPlayer == PieceColor.WHITE ? "White" : "Black") + "'s turn");
-            timeRemaining = 30; // Reset time
-            timerLabel.setText("Time left: 30s");
-            turnTimer.restart();
-
-            checkGameOver();
-        }
-        resetSquareColor(selectedRow, selectedCol);
-        pieceSelected = false;
     }
-}
-
-// Handle timeout
-private void handleTimeOut() {
-    gameOver = true;
-    PieceColor winnerColor = (currentPlayer == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
-    statusLabel.setText("Game Over! " + winnerColor + " wins (timeout).");
-    disableBoard();
-    JOptionPane.showMessageDialog(this, "Game Over! " + winnerColor + " wins (timeout).");
-
-    // Notify the listener
-    if (listener != null) {
-        listener.onBoardWon(winnerColor, boardIndex);
-    }
-}
 
     // Update a single square’s display.
     private void updateSquare(int row, int col) {
@@ -302,11 +296,14 @@ private void handleTimeOut() {
         if (!isKingPresent(PieceColor.WHITE) || !isKingPresent(PieceColor.BLACK)) {
             gameOver = true;
             PieceColor winnerColor = isKingPresent(PieceColor.WHITE) ? PieceColor.WHITE : PieceColor.BLACK;
-            statusLabel.setText("Game Over! " + winnerColor + " wins.");
             disableBoard();
+
+            String winnerSymbol = (winnerColor == PieceColor.WHITE) ? "X" : "O";
+            showOverlaySymbol(winnerSymbol);
+
             JOptionPane.showMessageDialog(this, "Game Over! " + winnerColor + " wins.");
 
-            // 🔔 Varsle MainGamePanel
+
             if (listener != null) {
                 listener.onBoardWon(winnerColor, boardIndex);
             }
@@ -321,9 +318,13 @@ private void handleTimeOut() {
             }
         }
     }
+    
+    public void setCurrentPlayer(PieceColor pieceColor) {
+        this.currentPlayer = pieceColor;
+    }
 }
 
-public class chessGame {
+public class ChessGame {
     public static void main(String[] args) {
         // Launch the persistent main menu that allows multiple boards.
         SwingUtilities.invokeLater(new Runnable() {
@@ -362,4 +363,5 @@ public class chessGame {
         boardFrame.setLocationByPlatform(true);
         boardFrame.setVisible(true);
     }
+
 }
