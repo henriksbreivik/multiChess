@@ -1,7 +1,10 @@
 package Model.soundsystem;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
 
 public class MainGamePanel extends JPanel implements ChessBoardListener {
     private ChessBoardPanel[] boards = new ChessBoardPanel[9];
@@ -29,19 +32,25 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
             boardGrid.add(boards[i]);
         }
 
+        boardGrid.setOpaque(false);
+        boardGrid.setBackground(Color.BLACK);
+
         // Wrap the boardGrid in a container panel
         JPanel container = new JPanel(new BorderLayout());
+        container.setBackground(Color.BLACK);
         container.add(boardGrid, BorderLayout.CENTER);
 
         // Add padding to the left to push the grid to the right
-        JPanel leftPadding = new JPanel(new GridLayout(3, 1, 0, 10)); // Three rows: White Timer, Turn Label, Black
-                                                                      // Timer
+        JPanel leftPadding = new JPanel(new GridLayout(3, 1, 0, 0)); // Three rows: White Timer, Turn Label, Black Timer
         leftPadding.setPreferredSize(new Dimension(200, 0)); // Adjust width as needed
 
         // Add timer labels and turn label to the padding panel
-        whiteTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        blackTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        turnLabel.setFont(new Font("SansSerif", Font.BOLD, 20)); // Larger font for the turn label
+        whiteTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 48));
+        blackTimerLabel.setFont(new Font("SansSerif", Font.BOLD, 48));
+        blackTimerLabel.setForeground(Color.WHITE);
+        blackTimerLabel.setBackground(Color.BLACK);
+        blackTimerLabel.setOpaque(true);
+        turnLabel.setFont(new Font("SansSerif", Font.BOLD, 30)); // Larger font for the turn label
         turnLabel.setOpaque(true);
         turnLabel.setBackground(Color.LIGHT_GRAY); // Background color for the turn label
         turnLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK)); // Add a border to the label
@@ -65,7 +74,7 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
         initializeTimers();
 
     }
-    
+
 
     @Override
     public void onBoardWon(PieceColor winner, int boardIndex) {
@@ -73,38 +82,58 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
         int col = boardIndex % 3;
         boardWinners[row][col] = winner;
 
-        // Farg ruten for å vise vinner
-        boards[boardIndex].setBackground(winner == PieceColor.WHITE ? Color.GREEN : Color.RED);
-        boards[boardIndex].showOverlaySymbol(winner == PieceColor.WHITE ? "X" : "O", 126, winner == PieceColor.WHITE ? Color.BLUE : Color.RED);
-
         // Sjekk om noen har vunnet Tic Tac Toe
         if (checkTicTacToeWin(winner)) {
             disableAllBoards();
-            JOptionPane.showMessageDialog(this, winner + " wins the entire game!");
 
+            JOptionPane.showMessageDialog(this, winner + " wins the entire game!");
+        } 
+        else if (checkTicTacToeDraw()) {
+            disableAllBoards();
+
+            JOptionPane.showMessageDialog(this, "Draw. :-(");
         } else {
             // Fortsett spillet
-
             currentPlayer = (currentPlayer == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
         }
     }
+
+    private boolean checkTicTacToeDraw() {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (boardWinners[i][j] != PieceColor.WHITE || boardWinners[i][j] != PieceColor.BLACK) {
+                    return false;
+                }
+            }
+        }
+        stopTimer();
+        return true;
+    }
+
 
     // Sjekker om en spiller har fått tre på rad
     private boolean checkTicTacToeWin(PieceColor color) {
         for (int i = 0; i < 3; i++) {
             // Rader
-            if (boardWinners[i][0] == color && boardWinners[i][1] == color && boardWinners[i][2] == color)
+            if (boardWinners[i][0] == color && boardWinners[i][1] == color && boardWinners[i][2] == color) {
+                stopTimer();
                 return true;
+            }
             // Kolonner
-            if (boardWinners[0][i] == color && boardWinners[1][i] == color && boardWinners[2][i] == color)
+            if (boardWinners[0][i] == color && boardWinners[1][i] == color && boardWinners[2][i] == color) {
+                stopTimer();
                 return true;
+            }
         }
         // Diagonaler
-        if (boardWinners[0][0] == color && boardWinners[1][1] == color && boardWinners[2][2] == color)
+        if (boardWinners[0][0] == color && boardWinners[1][1] == color && boardWinners[2][2] == color) {
+            stopTimer();
             return true;
-        if (boardWinners[0][2] == color && boardWinners[1][1] == color && boardWinners[2][0] == color)
+        }
+        if (boardWinners[0][2] == color && boardWinners[1][1] == color && boardWinners[2][0] == color) {
+            stopTimer();
             return true;
-
+        }
         return false;
     }
 
@@ -168,6 +197,11 @@ public class MainGamePanel extends JPanel implements ChessBoardListener {
             whiteTimer.stop();
             blackTimer.start();
         }
+    }
+
+    public void stopTimer() {
+        whiteTimer.stop();
+        blackTimer.stop();
     }
 
 }

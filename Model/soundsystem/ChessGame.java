@@ -154,7 +154,9 @@ class ChessBoardPanel extends JPanel implements ActionListener {
                 pieceSelected = true;
                 selectedRow = row;
                 selectedCol = col;
+                resetAllSquareColors();
                 squares[row][col].setBackground(Color.YELLOW);
+                highlightValidMoves(row, col);
             }
         } else {
             if (isValidMove(board[selectedRow][selectedCol], selectedRow, selectedCol, row, col)) {
@@ -171,7 +173,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
                 checkGameOver();
 
             }
-            resetSquareColor(selectedRow, selectedCol);
+            resetAllSquareColors();
             pieceSelected = false;
         }
     }
@@ -233,6 +235,38 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return false;
     }
+
+    private void highlightValidMoves(int row, int col) {
+    // Reset any previous highlights
+    resetAllSquareColors();
+
+    // Get the selected piece
+    piece selectedPiece = board[row][col];
+
+    Color yellowTint = new Color(246, 246, 117);
+
+    // Check all squares on the board
+    for (int targetRow = 0; targetRow < 8; targetRow++) {
+        for (int targetCol = 0; targetCol < 8; targetCol++) {
+            // If the move is valid, highlight the square
+            if (isValidMove(selectedPiece, row, col, targetRow, targetCol)) {
+                squares[targetRow][targetCol].setBackground(yellowTint); // Highlight color
+            }
+        }
+    }
+}
+
+private void resetAllSquareColors() {
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            if ((row + col) % 2 == 0) {
+                squares[row][col].setBackground(Color.WHITE); // Default white square
+            } else {
+                squares[row][col].setBackground(Color.GRAY); // Default gray square
+            }
+        }
+    }
+}
 
     // Pawn movement validation.
     private boolean isValidPawnMove(piece piece, int fromRow, int fromCol, int toRow, int toCol, int dRow, int dCol) {
