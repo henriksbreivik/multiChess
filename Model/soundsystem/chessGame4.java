@@ -7,6 +7,7 @@ import java.awt.event.*;
 enum PieceType { KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN, NONE }
 enum PieceColor { WHITE, BLACK, NONE }
 
+// Represents a chess piece.
 class Piece {
     PieceType type;
     PieceColor color;
@@ -55,11 +56,16 @@ class ChessBoardPanel extends JPanel implements ActionListener {
     private boolean pieceSelected = false;
     private int selectedRow, selectedCol;
     private PieceColor currentPlayer = PieceColor.WHITE;  // White always starts
+    private boolean gameOver = false;
+    private JLabel statusLabel = new JLabel("White's turn");
 
     public ChessBoardPanel() {
-        setLayout(new GridLayout(8, 8));
+        setLayout(new BorderLayout());
+        JPanel boardPanel = new JPanel(new GridLayout(8, 8));
         initializeBoardState();
-        initializeGUI();
+        initializeGUI(boardPanel);
+        add(boardPanel, BorderLayout.CENTER);
+        add(statusLabel, BorderLayout.SOUTH);
     }
     
     // Set up the starting positions for all pieces.
@@ -97,7 +103,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
     }
     
     // Set up the board GUI.
-    private void initializeGUI() {
+    private void initializeGUI(JPanel boardPanel) {
         Font font = new Font("SansSerif", Font.PLAIN, 36);
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
@@ -106,20 +112,23 @@ class ChessBoardPanel extends JPanel implements ActionListener {
                 squares[row][col].setFocusPainted(false);
                 squares[row][col].setOpaque(true);
                 squares[row][col].setBorderPainted(false);
-                // Alternate square colors
+                // Alternate square colors.
                 if ((row + col) % 2 == 0) {
                     squares[row][col].setBackground(Color.WHITE);
                 } else {
                     squares[row][col].setBackground(Color.GRAY);
                 }
                 squares[row][col].addActionListener(this);
-                add(squares[row][col]);
+                boardPanel.add(squares[row][col]);
             }
         }
     }
     
     // Handle a square click.
     public void actionPerformed(ActionEvent e) {
+        if (gameOver) {
+            return;
+        }
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 if (e.getSource() == squares[row][col]) {
@@ -143,15 +152,17 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         } else {
             // Attempt to move the selected piece.
             if (isValidMove(board[selectedRow][selectedCol], selectedRow, selectedCol, row, col)) {
-                // Move piece and clear the original square.
                 board[row][col] = board[selectedRow][selectedCol];
                 board[selectedRow][selectedCol] = new Piece();
                 updateSquare(selectedRow, selectedCol);
                 updateSquare(row, col);
                 // Switch turns.
                 currentPlayer = (currentPlayer == PieceColor.WHITE) ? PieceColor.BLACK : PieceColor.WHITE;
+                statusLabel.setText((currentPlayer == PieceColor.WHITE ? "White" : "Black") + "'s turn");
+                // Check for game over condition.
+                checkGameOver();
             }
-            // Reset colors.
+            // Reset the previously selected square's color.
             resetSquareColor(selectedRow, selectedCol);
             pieceSelected = false;
         }
@@ -183,7 +194,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
             case PAWN:
                 return isValidPawnMove(piece, fromRow, fromCol, toRow, toCol, dRow, dCol);
             case KNIGHT:
-                // L-shaped move: two in one direction and one perpendicular.
+                // L-shaped move.
                 if ((Math.abs(dRow) == 2 && Math.abs(dCol) == 1) ||
                     (Math.abs(dRow) == 1 && Math.abs(dCol) == 2)) {
                     return true;
@@ -224,7 +235,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         // Double move from starting row.
         if (dCol == 0 && dRow == 2 * direction && board[toRow][toCol].type == PieceType.NONE) {
             if ((piece.color == PieceColor.WHITE && fromRow == 6) || (piece.color == PieceColor.BLACK && fromRow == 1)) {
-                // Check that the intermediate square is clear.
+                // Ensure intermediate square is clear.
                 if (board[fromRow + direction][fromCol].type == PieceType.NONE) {
                     return true;
                 }
@@ -266,11 +277,43 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return true;
     }
+    
+    // Check if a king of the specified color is still present.
+    private boolean isKingPresent(PieceColor color) {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                if (board[row][col].type == PieceType.KING && board[row][col].color == color) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    // Checks if the game is over (if either king is missing) and disables the board if so.
+    private void checkGameOver() {
+        if (!isKingPresent(PieceColor.WHITE) || !isKingPresent(PieceColor.BLACK)) {
+            gameOver = true;
+            String winner = isKingPresent(PieceColor.WHITE) ? "White" : "Black";
+            statusLabel.setText("Game Over! " + winner + " wins.");
+            disableBoard();
+            JOptionPane.showMessageDialog(this, "Game Over! " + winner + " wins.");
+        }
+    }
+    
+    // Disables all buttons to prevent further moves.
+    private void disableBoard() {
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                squares[row][col].setEnabled(false);
+            }
+        }
+    }
 }
 
-public class chessGame3 {
+public class chessGame4 {
     public static void main(String[] args) {
-        // Launch the main menu that remains active and allows multiple boards.
+        // Launch the persistent main menu that allows multiple boards.
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 createMainMenu();
@@ -284,7 +327,7 @@ public class chessGame3 {
         menuFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         menuFrame.setLayout(new FlowLayout());
         
-        JButton newBoardButton = new JButton("Start game");
+        JButton newBoardButton = new JButton("New Board");
         newBoardButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 createNewBoard();
@@ -296,45 +339,15 @@ public class chessGame3 {
         menuFrame.setLocationRelativeTo(null);
         menuFrame.setVisible(true);
     }
-
-    
-    /*
-    forsøk på å skape 3x3 tictactoe grid ikke fullført basert på chat sin løsning på å lage sjakkbrett
-    public static void createtictactoe(){
-        JButton[][] squary = new JButton[3][3];
-        JFrame ticFrame = new JFrame("tictactoe");
-        for (int row = 0; row < 3; row ++) {
-            for (int col = 0; col < 3; col ++) {
-                squary[row][col] = new JButton(board[row][col].getSymbol());
-                squary[row][col].setFont(font);
-                squary[row][col].setFocusPainted(false);
-                squary[row][col].setOpaque(true);
-                squary[row][col].setBorderPainted(false);
-                // Alternate square colors
-                if ((row + col) % 2 == 0) {
-                    squary[row][col].setBackground(Color.WHITE);
-                } else {
-                    squary[row][col].setBackground(Color.GRAY);
-                }
-                squary[row][col].addActionListener(this);
-                add(squary[row][col]);
-            }
-
-        }
-    
-
-    }*/
     
     // Creates a new chess board window.
     public static void createNewBoard() {
-        JFrame boardFrame = new JFrame("Chess Boards");
+        JFrame boardFrame = new JFrame("Chess Board");
         boardFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        for (int i = 0; i < 9; i++){
         ChessBoardPanel boardPanel = new ChessBoardPanel();
         boardFrame.add(boardPanel);
         boardFrame.setSize(600, 600);
         boardFrame.setLocationByPlatform(true);
         boardFrame.setVisible(true);
-    }}
+    }
 }
-
