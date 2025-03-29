@@ -14,7 +14,7 @@ public class soundMakerwaw {
                 try {
                     this.clip = AudioSystem.getClip();
                     AudioInputStream inputStream = AudioSystem.getAudioInputStream(
-                            soundMakerwaw.class.getResourceAsStream("/sounds/" + filename));
+                            soundMakerwaw.class.getResourceAsStream(filename));
                     this.clip.open(inputStream);
                 } catch (Exception e) {
                     System.err.println(e);

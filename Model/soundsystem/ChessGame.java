@@ -5,11 +5,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+enum PieceType {
+    KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN, NONE
+}
 
+enum PieceColor {
+    WHITE, BLACK, NONE
+}
 
-
-enum PieceType { KING, QUEEN, ROOK, BISHOP, KNIGHT, PAWN, NONE }
-enum PieceColor { WHITE, BLACK, NONE }
 @SuppressWarnings("serial")
 class ChessBoardPanel extends JPanel implements ActionListener {
     private JButton[][] squares = new JButton[8][8];
@@ -19,24 +22,14 @@ class ChessBoardPanel extends JPanel implements ActionListener {
     private boolean gameOver = false;
     private JLabel overlayLabel;
     private PieceColor currentPlayer;
-    
+    private JLayeredPane layeredPane;
 
     private ChessBoardListener listener;
     private int boardIndex;
 
-    public void showOverlaySymbol(String symbol) {
-        overlayLabel.setText(symbol);
-        overlayLabel.setVisible(true);
-    }
-
-    public void setListener(ChessBoardListener listener, int index) {
-        this.listener = listener;
-        this.boardIndex = index;
-    }
-
     public ChessBoardPanel() {
         setLayout(new BorderLayout());
-        
+
         JPanel boardPanel = new JPanel(new GridLayout(8, 8));
         initializeBoardState();
         initializeGUI(boardPanel);
@@ -45,9 +38,10 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         overlayLabel.setFont(new Font("SansSerif", Font.BOLD, 96));
         overlayLabel.setForeground(new Color(0, 0, 0, 150)); // semi-transparent svart
         overlayLabel.setOpaque(false);
+        overlayLabel.setBackground(new Color(0, 0, 0, 0));
         overlayLabel.setVisible(false);
 
-        JLayeredPane layeredPane = new JLayeredPane();
+        layeredPane = new JLayeredPane();
         boardPanel.setBounds(0, 0, 600, 600);
         overlayLabel.setBounds(0, 0, 600, 600);
         layeredPane.setPreferredSize(new Dimension(600, 600));
@@ -56,12 +50,25 @@ class ChessBoardPanel extends JPanel implements ActionListener {
 
         removeAll();
         setLayout(new BorderLayout());
-        add(boardPanel, BorderLayout.CENTER);
-        
+        add(layeredPane, BorderLayout.CENTER);
+
         currentPlayer = PieceColor.WHITE;
 
     }
 
+    public void setListener(ChessBoardListener listener, int index) {
+        this.listener = listener;
+        this.boardIndex = index;
+    }
+
+    public void showOverlaySymbol(String symbol, int fontSize, Color color) {
+        overlayLabel.setText(symbol); // Update the text of the overlay label
+        overlayLabel.setFont(new Font("SansSerif", Font.BOLD, fontSize)); // Set the font size
+        overlayLabel.setForeground(color); // Set the color of the symbol
+        overlayLabel.setVisible(true); // Make the overlay label visible
+        revalidate(); // Revalidate the panel to ensure layout updates
+        repaint(); // Repaint the panel to reflect changes
+    }
 
     // Set up the starting positions for all pieces.
     private void initializeBoardState() {
@@ -99,31 +106,31 @@ class ChessBoardPanel extends JPanel implements ActionListener {
 
     // Set up the board GUI.
     private void initializeGUI(JPanel boardPanel) {
-    Font font = new Font("Symbola", Font.PLAIN,24);
+        Font font = new Font("Symbola", Font.PLAIN, 32);
 
-    for (int row = 0; row < 8; row++) {
-        for (int col = 0; col < 8; col++) {
-            JButton button = new JButton(board[row][col].getSymbol());
-            button.setFont(font);
-            button.setFocusPainted(false);
-            button.setPreferredSize(new Dimension(80, 80));
-            button.setMargin(new Insets(0, 0, 0, 0)); 
-            button.setOpaque(true);
-            button.setBorderPainted(false);
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                JButton button = new JButton(board[row][col].getSymbol());
+                button.setFont(font);
+                button.setFocusPainted(false);
+                button.setPreferredSize(new Dimension(60, 60));
+                button.setMargin(new Insets(0, 0, 0, 0));
+                button.setOpaque(true);
+                button.setBorderPainted(false);
 
-            if ((row + col) % 2 == 0) {
-                button.setBackground(Color.WHITE);
-            } else {
-                button.setBackground(Color.GRAY);
+                if ((row + col) % 2 == 0) {
+                    button.setBackground(Color.WHITE);
+                } else {
+                    button.setBackground(Color.GRAY);
+                }
+
+                button.addActionListener(this);
+                squares[row][col] = button;
+                boardPanel.add(button);
             }
-
-            button.addActionListener(this);
-            squares[row][col] = button;
-            boardPanel.add(button);
         }
     }
-}
-    
+
     // Handle a square click.
     public void actionPerformed(ActionEvent e) {
         if (gameOver) {
@@ -159,10 +166,10 @@ class ChessBoardPanel extends JPanel implements ActionListener {
                 // Notify MainGamePanel that a move was made
                 if (listener != null) {
                     listener.onMoveMade(boardIndex);
-                }    
+                }
 
                 checkGameOver();
-                
+
             }
             resetSquareColor(selectedRow, selectedCol);
             pieceSelected = false;
@@ -173,7 +180,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
     private void updateSquare(int row, int col) {
         squares[row][col].setText(board[row][col].getSymbol());
     }
-    
+
     // Reset a square's background to its default.
     private void resetSquareColor(int row, int col) {
         if ((row + col) % 2 == 0)
@@ -181,8 +188,9 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         else
             squares[row][col].setBackground(Color.GRAY);
     }
-    
-    // Checks if moving the piece from (fromRow, fromCol) to (toRow, toCol) is legal.
+
+    // Checks if moving the piece from (fromRow, fromCol) to (toRow, toCol) is
+    // legal.
     private boolean isValidMove(piece piece, int fromRow, int fromCol, int toRow, int toCol) {
         // Cannot capture your own piece.
         if (board[toRow][toCol].color == piece.color) {
@@ -190,14 +198,14 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         int dRow = toRow - fromRow;
         int dCol = toCol - fromCol;
-        
-        switch(piece.type) {
+
+        switch (piece.type) {
             case PAWN:
                 return isValidPawnMove(piece, fromRow, fromCol, toRow, toCol, dRow, dCol);
             case KNIGHT:
                 // L-shaped move.
                 if ((Math.abs(dRow) == 2 && Math.abs(dCol) == 1) ||
-                    (Math.abs(dRow) == 1 && Math.abs(dCol) == 2)) {
+                        (Math.abs(dRow) == 1 && Math.abs(dCol) == 2)) {
                     return true;
                 }
                 break;
@@ -225,7 +233,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return false;
     }
-    
+
     // Pawn movement validation.
     private boolean isValidPawnMove(piece piece, int fromRow, int fromCol, int toRow, int toCol, int dRow, int dCol) {
         int direction = (piece.color == PieceColor.WHITE) ? -1 : 1;
@@ -235,7 +243,8 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         // Double move from starting row.
         if (dCol == 0 && dRow == 2 * direction && board[toRow][toCol].type == PieceType.NONE) {
-            if ((piece.color == PieceColor.WHITE && fromRow == 6) || (piece.color == PieceColor.BLACK && fromRow == 1)) {
+            if ((piece.color == PieceColor.WHITE && fromRow == 6)
+                    || (piece.color == PieceColor.BLACK && fromRow == 1)) {
                 // Ensure intermediate square is clear.
                 if (board[fromRow + direction][fromCol].type == PieceType.NONE) {
                     return true;
@@ -248,8 +257,9 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return false;
     }
-    
-    // Check if all squares between (fromRow,fromCol) and (toRow,toCol) are empty for straight moves.
+
+    // Check if all squares between (fromRow,fromCol) and (toRow,toCol) are empty
+    // for straight moves.
     private boolean clearStraight(int fromRow, int fromCol, int toRow, int toCol) {
         int stepRow = Integer.compare(toRow, fromRow);
         int stepCol = Integer.compare(toCol, fromCol);
@@ -263,8 +273,9 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return true;
     }
-    
-    // Check if all squares between (fromRow,fromCol) and (toRow,toCol) are empty for diagonal moves.
+
+    // Check if all squares between (fromRow,fromCol) and (toRow,toCol) are empty
+    // for diagonal moves.
     private boolean clearDiagonal(int fromRow, int fromCol, int toRow, int toCol) {
         int stepRow = (toRow - fromRow) > 0 ? 1 : -1;
         int stepCol = (toCol - fromCol) > 0 ? 1 : -1;
@@ -278,7 +289,7 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return true;
     }
-    
+
     // Check if a king of the specified color is still present.
     private boolean isKingPresent(PieceColor color) {
         for (int row = 0; row < 8; row++) {
@@ -290,8 +301,9 @@ class ChessBoardPanel extends JPanel implements ActionListener {
         }
         return false;
     }
-    
-    // Checks if the game is over (if either king is missing) and disables the board if so.
+
+    // Checks if the game is over (if either king is missing) and disables the board
+    // if so.
     private void checkGameOver() {
         if (!isKingPresent(PieceColor.WHITE) || !isKingPresent(PieceColor.BLACK)) {
             gameOver = true;
@@ -299,17 +311,22 @@ class ChessBoardPanel extends JPanel implements ActionListener {
             disableBoard();
 
             String winnerSymbol = (winnerColor == PieceColor.WHITE) ? "X" : "O";
-            showOverlaySymbol(winnerSymbol);
+            Color symbolColor;
+            if (winnerSymbol == "X") {
+                symbolColor = Color.BLUE;
+            } else {
+                symbolColor = Color.RED;
+            }
+            showOverlaySymbol(winnerSymbol, 256, symbolColor);
 
-            JOptionPane.showMessageDialog(this, "Game Over! " + winnerColor + " wins.");
-
+            // JOptionPane.showMessageDialog(this, "Game Over! " + winnerColor + " wins.");
 
             if (listener != null) {
                 listener.onBoardWon(winnerColor, boardIndex);
             }
         }
     }
-    
+
     // Disables all buttons to prevent further moves.
     void disableBoard() {
         for (int row = 0; row < 8; row++) {
@@ -318,9 +335,36 @@ class ChessBoardPanel extends JPanel implements ActionListener {
             }
         }
     }
-    
+
     public void setCurrentPlayer(PieceColor pieceColor) {
         this.currentPlayer = pieceColor;
+    }
+
+    @Override
+    public void doLayout() {
+        super.doLayout(); // Let the default layout manager do its work first
+
+        // Get the actual size allocated to this ChessBoardPanel by its parent layout manager
+        int width = getWidth();
+        int height = getHeight();
+
+        // Make the layeredPane (which holds the board and overlay) fill the entire
+        // space of this ChessBoardPanel, allowing it to stretch.
+        if (layeredPane != null) { // Check if layeredPane is initialized
+            layeredPane.setBounds(0, 0, width, height);
+
+            // Make the components *inside* the layeredPane (the actual grid panel and the overlay label)
+            // also fill the entire layeredPane.
+            for (Component comp : layeredPane.getComponents()) {
+                 if (comp != null) { // Check if component exists
+                     comp.setBounds(0, 0, width, height);
+                 }
+            }
+
+            // Optional: Adjust font size based on new dimensions if needed for better visuals
+            // This is more complex and might require calculating font size based on square size.
+            // For now, we are just stretching the layout.
+        }
     }
 }
 
@@ -333,13 +377,13 @@ public class ChessGame {
             }
         });
     }
-    
+
     // Creates the main menu window.
     private static void createMainMenu() {
         JFrame menuFrame = new JFrame("Chess Game - Main Menu");
         menuFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         menuFrame.setLayout(new FlowLayout());
-        
+
         JButton newBoardButton = new JButton("New Board");
         newBoardButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -347,12 +391,12 @@ public class ChessGame {
             }
         });
         menuFrame.add(newBoardButton);
-        
+
         menuFrame.setSize(300, 100);
         menuFrame.setLocationRelativeTo(null);
         menuFrame.setVisible(true);
     }
-    
+
     // Creates a new chess board window.
     public static void createNewBoard() {
         JFrame boardFrame = new JFrame("Chess Board");

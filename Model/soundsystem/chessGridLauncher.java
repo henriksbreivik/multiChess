@@ -7,6 +7,8 @@ import javax.swing.*;
 
 public class chessGridLauncher {
     public static void main(String[] args) {
+        soundMakerwaw backgroundSound = new soundMakerwaw("mario-theme.wav");
+        backgroundSound.loop();
         SwingUtilities.invokeLater(() -> {
 
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
