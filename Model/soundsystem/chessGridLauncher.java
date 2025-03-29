@@ -15,10 +15,11 @@ public class chessGridLauncher {
             JFrame frame = new JFrame("Ultimate Chess Tic Tac Toe");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setUndecorated(true);
+            
             frame.add(new MainGamePanel()); 
 
             if (gd.isFullScreenSupported()) {
-                gd.setFullScreenWindow(frame); // 🚀 Boom! Fullskjerm
+                gd.setFullScreenWindow(frame);
             } else {
 
                 frame.setLocationRelativeTo(null);
